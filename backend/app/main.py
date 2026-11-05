@@ -14,9 +14,14 @@ settings = get_settings()
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    # Ensure tables exist (for SQLite/local dev)
-    Base.metadata.create_all(bind=engine)
-    run_startup_migrations(engine)
+    # Ensure tables exist on each serverless instance. A database outage should
+    # not prevent the ASGI app from starting; request handlers will surface the
+    # unavailable database instead of returning a platform-level invocation 500.
+    try:
+        Base.metadata.create_all(bind=engine)
+        run_startup_migrations(engine)
+    except Exception as exc:  # pragma: no cover - depends on external database
+        print(f"Database startup failed: {exc}")
     yield
 
 
@@ -50,6 +55,11 @@ app.include_router(chat.router, prefix=settings.api_prefix)
 
 @app.get("/")
 def read_root():
+    return {"status": "ok"}
+
+
+@app.get("/health")
+def health_check():
     return {"status": "ok"}
 
 
