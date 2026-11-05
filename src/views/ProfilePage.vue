@@ -114,7 +114,7 @@
                         <dt>Role</dt>
                         <dd>{{ expertProfile?.primaryRole || displayRole || 'Not specified' }}</dd>
                         </div>
-                        <div>
+                        <div v-if="isOwnProfile && profile.email">
                           <dt>Email</dt>
                           <dd>{{ profile.email }}</dd>
                         </div>
@@ -148,12 +148,8 @@
                     </div>
 
                     <div class="info-card">
-                      <h3 class="info-card-title">Level & Progress</h3>
+                      <h3 class="info-card-title">Answer activity</h3>
                       <div class="info-stat-grid">
-                        <div class="info-stat">
-                          <span class="info-stat-label">Level</span>
-                          <span class="info-stat-value">{{ levelTitle }}</span>
-                        </div>
                         <div class="info-stat">
                           <span class="info-stat-label">Answered</span>
                           <span class="info-stat-value">{{ answeredQuestions }}</span>
@@ -163,7 +159,7 @@
                           <span class="info-stat-value">{{ acceptedAnswers }}</span>
                         </div>
                         <div class="info-stat">
-                          <span class="info-stat-label">Success rate</span>
+                          <span class="info-stat-label">Accepted rate</span>
                           <span class="info-stat-value">{{ successRate }}%</span>
                         </div>
                       </div>
@@ -177,41 +173,41 @@
                     <div
                       class="info-card links-card"
                       v-if="
-                        expertProfile?.githubUrl ||
-                        expertProfile?.linkedinUrl ||
-                        expertProfile?.portfolioUrl
+                        safeGithubUrl ||
+                        safeLinkedinUrl ||
+                        safePortfolioUrl
                       "
                     >
                       <h3 class="info-card-title">Links</h3>
                       <ul class="links-list">
-                        <li v-if="expertProfile?.githubUrl">
+                        <li v-if="safeGithubUrl">
                           <span>GitHub</span>
                           <a
-                            :href="expertProfile.githubUrl"
+                            :href="safeGithubUrl"
                             target="_blank"
-                            rel="noopener"
+                            rel="noopener noreferrer"
                           >
-                            {{ expertProfile.githubUrl }}
+                            {{ safeGithubUrl }}
                           </a>
                         </li>
-                        <li v-if="expertProfile?.linkedinUrl">
+                        <li v-if="safeLinkedinUrl">
                           <span>LinkedIn</span>
                           <a
-                            :href="expertProfile.linkedinUrl"
+                            :href="safeLinkedinUrl"
                             target="_blank"
-                            rel="noopener"
+                            rel="noopener noreferrer"
                           >
-                            {{ expertProfile.linkedinUrl }}
+                            {{ safeLinkedinUrl }}
                           </a>
                         </li>
-                        <li v-if="expertProfile?.portfolioUrl">
+                        <li v-if="safePortfolioUrl">
                           <span>Portfolio</span>
                           <a
-                            :href="expertProfile.portfolioUrl"
+                            :href="safePortfolioUrl"
                             target="_blank"
-                            rel="noopener"
+                            rel="noopener noreferrer"
                           >
-                            {{ expertProfile.portfolioUrl }}
+                            {{ safePortfolioUrl }}
                           </a>
                         </li>
                       </ul>
@@ -291,6 +287,7 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import { fetchMyQuestions, fetchMyAnswers } from '@/services/questionsService'
 import { fetchUserById } from '@/services/userservice'
 import { parseSkillsParam } from '@/utils/profileFallback'
+import { safeExternalUrl } from '@/utils/safeExternalUrl'
 import profileImage from '@/assets/images/profile.jpg'
 
 const route = useRoute()
@@ -345,7 +342,6 @@ const buildFallbackPublicProfile = () => {
 
   return {
     id: requestedUserId.value || query.id || 'unknown-user',
-    email: getQueryValue('email') || '',
     name: fallbackName,
     role: fallbackUserRole || 'expert',
     answersCount: parseNumber(queryAnswered, 0),
@@ -385,6 +381,9 @@ const profile = computed(() => {
 })
 
 const expertProfile = computed(() => profile.value?.expertProfile ?? null)
+const safeGithubUrl = computed(() => safeExternalUrl(expertProfile.value?.githubUrl))
+const safeLinkedinUrl = computed(() => safeExternalUrl(expertProfile.value?.linkedinUrl))
+const safePortfolioUrl = computed(() => safeExternalUrl(expertProfile.value?.portfolioUrl))
 
 const answeredQuestions = computed(() => {
   if (profile.value?.answersCount != null) {
@@ -400,14 +399,6 @@ const successRate = computed(() => {
     return 0
   }
   return Math.round((acceptedAnswers.value / answeredQuestions.value) * 100)
-})
-
-const levelTitle = computed(() => {
-  const accepted = acceptedAnswers.value
-  if (accepted >= 50) return 'Expert'
-  if (accepted >= 20) return 'Pro'
-  if (accepted >= 5) return 'Rising'
-  return 'Newcomer'
 })
 
 const displayName = computed(() => {

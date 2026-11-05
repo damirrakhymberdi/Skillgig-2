@@ -26,6 +26,7 @@ CATEGORY_SEED = [
 def list_categories(db: Session = Depends(get_db)) -> List[Category]:
     totals = dict(
         db.query(Question.category, func.count(Question.id))
+        .filter(Question.status.in_(("published", "resolved")))
         .group_by(Question.category)
         .all()
     )

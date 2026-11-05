@@ -9,6 +9,19 @@
             Discover and explore tech questions from developers like you.
           </p>
         </div>
+        <form class="hero-actions" role="search" @submit.prevent="handleSearch">
+          <div class="search-box">
+            <input
+              v-model="searchQuery"
+              type="search"
+              placeholder="Search IT questions"
+              aria-label="Search IT questions"
+            >
+          </div>
+          <button type="submit" class="search-button" :disabled="!searchQuery.trim()">
+            Search
+          </button>
+        </form>
       </div>
     </div>
   </section>
@@ -17,20 +30,16 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import heroBg from '@/assets/images/Hero Section.png'
 
 const router = useRouter()
 const searchQuery = ref('')
 
-const handleInput = () => {
-  // debounce-ready placeholder
-}
-
 const handleSearch = () => {
-  if (searchQuery.value.trim()) {
+  const search = searchQuery.value.trim()
+  if (search) {
     router.push({ 
       path: '/questions',
-      query: { search: searchQuery.value } 
+      query: { search }
     })
   }
 }
@@ -104,7 +113,7 @@ const handleSearch = () => {
 
 .hero-actions {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   align-items: center;
   gap: 1rem;
   width: 100%;
@@ -113,20 +122,12 @@ const handleSearch = () => {
 .search-box {
   position: relative;
   width: 100%;
-}
-
-.search-icon {
-  position: absolute;
-  left: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #d1d5db;
-  pointer-events: none;
+  max-width: 560px;
 }
 
 .search-box input {
   width: 100%;
-  padding: 0.95rem 1rem 0.95rem 3rem;
+  padding: 0.95rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 10px;
   font-size: 1rem;
@@ -140,6 +141,28 @@ const handleSearch = () => {
   color: #e5e7eb;
 }
 
+.search-button {
+  border: 0;
+  border-radius: 10px;
+  padding: 0.95rem 1.4rem;
+  background: #42b883;
+  color: #10281c;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.search-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.search-box input:focus-visible,
+.search-button:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
 @media (max-width: 900px) {
   .hero-inner {
     grid-template-columns: 1fr;
@@ -147,6 +170,14 @@ const handleSearch = () => {
 }
 
 @media (max-width: 768px) {
+  .hero-actions {
+    flex-direction: column;
+  }
+
+  .search-box,
+  .search-button {
+    width: 100%;
+  }
   .hero-title {
     font-size: 1.9rem;
   }

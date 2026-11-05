@@ -39,6 +39,8 @@ export const normalizeUser = (rawUser, fallback = {}) => {
     lastName,
     name: derivedName,
     role: source.role ?? fallback.role ?? DEFAULT_ROLE,
+    expertProfile:
+      source.expert_profile ?? source.expertProfile ?? fallback.expertProfile ?? null,
     avatar: source.avatar ?? source.image ?? fallback.avatar ?? null,
     answersCount: coerceNumber(
       source.answers_count ??
@@ -82,7 +84,9 @@ export const registerUser = async (formData) => {
     email: formData.email,
     password: formData.password,
     role: formData.role || DEFAULT_ROLE,
-    username: formData.username
+    username: formData.username,
+    firstName: formData.firstName,
+    lastName: formData.lastName
   })
 
   const response = await apiPost('/auth/register', body)

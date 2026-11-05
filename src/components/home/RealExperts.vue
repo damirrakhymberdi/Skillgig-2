@@ -8,15 +8,21 @@
             <span class="purple-text">from</span> Real Experts
           </h2>
           <p class="subtitle">
-            We reached here with our hard work<br class="subtitle-break"> and dedication
+            Get practical help from the community and share what you know.
           </p>
         </div>
-        
-        <div class="stats-grid">
+
+        <p v-if="loading" class="stats-message" aria-live="polite">
+          Loading live platform stats…
+        </p>
+        <p v-else-if="statsError" class="stats-message stats-error" role="status">
+          Live platform stats are unavailable while the backend is offline.
+        </p>
+        <div v-else class="stats-grid">
           <div class="stat-item">
             <img src="@/assets/images/logos/Vector (7).png" alt="Questions asked" class="stat-icon">
             <div class="stat-content">
-              <div class="stat-number">1,123</div>
+              <div class="stat-number">{{ stats.totalQuestions.toLocaleString() }}</div>
               <div class="stat-label">Questions asked</div>
             </div>
           </div>
@@ -24,24 +30,16 @@
           <div class="stat-item">
             <img src="@/assets/images/logos/Vector (8).png" alt="Active experts" class="stat-icon">
             <div class="stat-content">
-              <div class="stat-number">46,328</div>
-              <div class="stat-label">Active experts</div>
+              <div class="stat-number">{{ stats.totalExperts.toLocaleString() }}</div>
+              <div class="stat-label">Expert profiles</div>
             </div>
           </div>
           
           <div class="stat-item">
-            <img src="@/assets/images/logos/Vector (9).png" alt="Average Rating" class="stat-icon">
+            <img src="@/assets/images/logos/Vector (9).png" alt="Resolved question rate" class="stat-icon">
             <div class="stat-content">
-              <div class="stat-number">828,867</div>
-              <div class="stat-label">Average Rating</div>
-            </div>
-          </div>
-          
-          <div class="stat-item">
-            <img src="@/assets/images/logos/Group 2 (1).png" alt="Success Rate" class="stat-icon">
-            <div class="stat-content">
-              <div class="stat-number">1,926,436</div>
-              <div class="stat-label">Success Rate</div>
+              <div class="stat-number">{{ stats.successRate }}%</div>
+              <div class="stat-label">Questions resolved</div>
             </div>
           </div>
         </div>
@@ -51,7 +49,23 @@
 </template>
 
 <script setup>
-// Компонент не требует логики
+import { onMounted, ref } from 'vue'
+import { fetchPlatformStats } from '@/services/statsService'
+
+const stats = ref({ totalQuestions: 0, totalExperts: 0, successRate: 0 })
+const loading = ref(true)
+const statsError = ref(false)
+
+onMounted(async () => {
+  try {
+    stats.value = await fetchPlatformStats()
+  } catch (error) {
+    console.error('Could not load live platform stats:', error)
+    statsError.value = true
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <style scoped>
@@ -115,13 +129,22 @@
 
 .stats-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.4rem;
   width: 100%;
-  justify-items: start;
+  justify-items: center;
 }
 
+.stats-message {
+  align-self: center;
+  color: #52645a;
+  font-size: 1rem;
+  line-height: 1.6;
+}
 
+.stats-error {
+  color: #8b5a19;
+}
 
 .stat-item {
   display: flex;

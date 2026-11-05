@@ -1,9 +1,9 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Literal, Optional
 
-from pydantic import Field
+from pydantic import ConfigDict, Field, field_validator
 
-from .common import CamelModel
+from .common import CamelModel, validate_external_web_url
 from .user import ExpertProfilePublic
 
 
@@ -22,10 +22,22 @@ class QuestionBase(CamelModel):
 
 
 class QuestionCreate(QuestionBase):
-    pass
+    status: Literal["draft", "published"] = "draft"
+
+    @field_validator("links")
+    @classmethod
+    def validate_links(cls, values: List[str]) -> List[str]:
+        return [validate_external_web_url(value) for value in values]
+
+    @field_validator("code_link")
+    @classmethod
+    def validate_code_link(cls, value: Optional[str]) -> Optional[str]:
+        return validate_external_web_url(value) if value else value
 
 
 class QuestionUpdate(CamelModel):
+    model_config = ConfigDict(extra="forbid")
+
     title: Optional[str] = None
     description: Optional[str] = None
     code_example: Optional[str] = None
@@ -36,14 +48,25 @@ class QuestionUpdate(CamelModel):
     links: Optional[List[str]] = None
     code_link: Optional[str] = None
     deadline: Optional[datetime] = None
-    status: Optional[str] = None
+    @field_validator("links")
+    @classmethod
+    def validate_links(cls, values: Optional[List[str]]) -> Optional[List[str]]:
+        return (
+            [validate_external_web_url(value) for value in values]
+            if values is not None
+            else None
+        )
+
+    @field_validator("code_link")
+    @classmethod
+    def validate_code_link(cls, value: Optional[str]) -> Optional[str]:
+        return validate_external_web_url(value) if value else value
 
 
 class QuestionOut(QuestionBase):
     id: str
     client_id: str
     client_name: str
-    client_email: Optional[str] = None
     client_role: Optional[str] = None
     client_profile: Optional[ExpertProfilePublic] = None
     answers_count: int = 0

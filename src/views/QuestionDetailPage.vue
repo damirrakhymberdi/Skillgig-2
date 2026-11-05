@@ -6,6 +6,13 @@
         Loading...
       </div>
 
+      <div v-else-if="loadError" class="empty error-state" role="alert">
+        <p>{{ loadError }}</p>
+        <button type="button" class="retry-button" @click="reloadQuestion">
+          Try again
+        </button>
+      </div>
+
       <div v-else-if="question" class="content">
         <!-- Question Header -->
         <div class="header">
@@ -21,7 +28,6 @@
                 @click="navigateToProfile({
                   userId: question.clientId,
                   name: question.clientName,
-                  email: question.clientEmail,
                   userRole: question.clientRole,
                   primaryRole: question.clientProfile?.primaryRole,
                   profile: question.clientProfile
@@ -46,6 +52,12 @@
             </button>
           </div>
 
+          <div v-else-if="hasAnswered && question.clientId" class="actions">
+            <button type="button" @click="openChatWithUser(question.clientId)">
+              Message asker
+            </button>
+          </div>
+
           <div class="tags">
             <span v-for="tag in question.tags" :key="tag">
               {{ tag }}
@@ -55,15 +67,15 @@
 
         <!-- Question Body -->
         <div class="body">
-          <div v-html="formatDescription(question.description)"></div>
+          <div class="question-description">{{ question.description }}</div>
 
           <div v-if="question.codeExample" class="code">
             <div class="code-label">Code example</div>
             <pre><code>{{ question.codeExample }}</code></pre>
           </div>
           
-          <div v-if="question.codeLink" class="link-box">
-            <a :href="question.codeLink" target="_blank">
+          <div v-if="safeCodeLink" class="link-box">
+            <a :href="safeCodeLink" target="_blank" rel="noopener noreferrer">
               🔗 View code on GitHub
             </a>
           </div>
@@ -77,6 +89,13 @@
             {{ verificationError }}
           </p>
 
+          <p v-if="answersError" class="error" role="alert">
+            {{ answersError }}
+            <button type="button" class="retry-button" @click="loadAnswers">
+              Retry loading answers
+            </button>
+          </p>
+
           <div v-if="answers.length > 0" class="answers-list">
             <AnswerCard
               v-for="answer in answers"
@@ -87,10 +106,12 @@
               :can-edit="isOwnAnswer(answer)"
               :can-delete="isOwnAnswer(answer)"
               :can-moderate="canModerateAnswer(answer)"
+              :can-message="isOwnQuestion && !isOwnAnswer(answer) && Boolean(answer.authorId)"
               :verifying="verifyingAnswerId === answer.id"
               @edit="startEditAnswer"
               @delete="handleDeleteAnswer"
               @verify="handleAnswerVerification"
+              @message="openChatWithUser(answer.authorId)"
             />
           </div>
 
@@ -133,6 +154,11 @@
           <div v-if="isOwnQuestion" class="empty">
             <p>You cannot answer your own question.</p>
           </div>
+          <div v-else-if="!canAnswer" class="empty">
+            <p>Create an expert profile to answer this question.</p>
+            <RouterLink v-if="user?.id" to="/profile/change">Set up expert profile</RouterLink>
+            <RouterLink v-else to="/login">Log in</RouterLink>
+          </div>
           <AnswerForm
             v-else
             :question-id="questionId"
@@ -163,6 +189,7 @@ import {
   verifyAnswer
 } from '@/services/questionsService'
 import { buildProfileQuery } from '@/utils/profileFallback'
+import { safeExternalUrl } from '@/utils/safeExternalUrl'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const route = useRoute()
@@ -185,96 +212,43 @@ const savingEdit = ref(false)
 const verifyingAnswerId = ref(null)
 const verificationError = ref('')
 
-const exampleQuestion = {
-  id: 'mock-question-001',
-  title: 'React компонентінде state жаңармайды',
-  description:
-    'Формадан мәнді setState арқылы жаңартсам да, UI өзгермейді. useState-ті қалай дұрыс қолдануға болады?\n\n```jsx\nconst [value, setValue] = useState(\"\")\n// ...\n```',
-  category: 'Web Development',
-  subcategory: 'React',
-  tags: ['React', 'useState', 'Forms'],
-  clientName: 'Айгерім Т.',
-  clientEmail: 'aigerim@example.com',
-  clientRole: 'Frontend Developer',
-  clientProfile: {
-    fullName: 'Айгерім Темірхан',
-    bio: 'React және Vue бойынша ментор.',
-    primaryRole: 'Web Development',
-    skills: ['React', 'Vue', 'TypeScript'],
-    githubUrl: '',
-    linkedinUrl: '',
-    portfolioUrl: '',
-    experienceYears: 3,
-    averageRating: 4.8,
-    resolvedQuestions: 42
-  },
-  codeLink: 'https://github.com/demo/react-state-bug',
-  acceptedAnswerId: 'mock-answer-001',
-  createdAt: '2025-12-01T09:30:00Z'
-}
-
-const exampleAnswers = [
-  {
-    id: 'mock-answer-001',
-    questionId: exampleQuestion.id,
-    authorId: 'mock-answer-author-01',
-    authorEmail: 'erlan@example.com',
-    authorRole: 'Fullstack',
-    authorProfile: {
-      fullName: 'Ерлан Батыр',
-      bio: 'Fullstack инженер.',
-      primaryRole: 'Fullstack',
-      skills: ['Node.js', 'React', 'PostgreSQL'],
-      githubUrl: '',
-      linkedinUrl: '',
-      portfolioUrl: '',
-      experienceYears: 5,
-      averageRating: 4.9,
-      resolvedQuestions: 58
-    },
-    answerText:
-      'Классикалық қате — setState асинхронды. Input-ты `value={value}` және `onChange={(e) => setValue(e.target.value)}` сияқты байлаңыз. Сонымен қатар, форма сабмитінде preventDefault жасауды ұмытпаңыз.',
-    codeExample:
-      "const handleChange = (event) => {\n  setValue(event.target.value);\n};",
-    links: ['https://react.dev/learn/state-a-components-memory'],
-    expertName: 'Ерлан Б.',
-    expertRating: 4.9,
-    isAccepted: true,
-    createdAt: '2025-12-01T10:05:00Z'
-  }
-]
-
-const isExampleQuestion = computed(() => {
-  return (question.value?.id || questionId) === exampleQuestion.id
-})
+const loadError = ref('')
+const answersError = ref('')
+const safeCodeLink = computed(() => safeExternalUrl(question.value?.codeLink))
 
 const loadQuestion = async () => {
   loading.value = true
+  loadError.value = ''
   try {
     const data = await fetchQuestionById(questionId)
-    question.value = data || exampleQuestion
+    question.value = data
+    if (!data) loadError.value = 'Question not found.'
   } catch (error) {
     console.error('Error loading question:', error)
-    question.value = exampleQuestion
+    question.value = null
+    loadError.value = error?.status === 404
+      ? 'Question not found.'
+      : 'Could not load this question. Check the server connection and try again.'
   } finally {
     loading.value = false
   }
 }
 
 const loadAnswers = async () => {
+  answersError.value = ''
   try {
     const data = await fetchQuestionAnswers(questionId)
-    if (Array.isArray(data) && data.length > 0) {
-      answers.value = data
-    } else if (isExampleQuestion.value) {
-      answers.value = exampleAnswers
-    } else {
-      answers.value = []
-    }
+    answers.value = Array.isArray(data) ? data : []
   } catch (error) {
     console.error('Error loading answers:', error)
-    answers.value = isExampleQuestion.value ? exampleAnswers : []
+    answers.value = []
+    answersError.value = 'Could not load answers. Check the server connection and try again.'
   }
+}
+
+const reloadQuestion = async () => {
+  await loadQuestion()
+  if (question.value) await loadAnswers()
 }
 
 const isOwnQuestion = computed(() => {
@@ -285,6 +259,21 @@ const isOwnQuestion = computed(() => {
 const isOwnAnswer = (answer) => {
   if (!user.value?.id) return false
   return answer.authorId === user.value.id
+}
+
+const canAnswer = computed(() => Boolean(user.value?.expertProfile))
+
+const hasAnswered = computed(() =>
+  answers.value.some((answer) => answer.authorId === user.value?.id)
+)
+
+const openChatWithUser = (partnerId) => {
+  if (!partnerId || !question.value?.id) return
+  router.push({
+    name: 'chat',
+    params: { questionId: question.value.id },
+    query: { partner: partnerId }
+  })
 }
 
 const canModerateAnswer = (answer) => {
@@ -397,9 +386,8 @@ const updateQuestionAcceptanceState = (preferredAnswerId = null) => {
         ? acceptedAnswers[0].id
         : null
 
-  const baseQuestion = question.value
-    ? { ...question.value }
-    : { ...exampleQuestion }
+  if (!question.value) return
+  const baseQuestion = { ...question.value }
 
   question.value = {
     ...baseQuestion,
@@ -430,32 +418,6 @@ const handleAnswerVerification = async (payload) => {
   const otherAcceptedIdsBefore = sameAuthorAcceptedIdsBefore.filter(
     (id) => id !== targetAnswer.id
   )
-
-  if (isExampleQuestion.value) {
-    answers.value = answers.value.map((current) => {
-      if (current.authorId === targetAnswer.authorId) {
-        if (current.id === targetAnswer.id) {
-          return { ...current, isAccepted: markAsCorrect }
-        }
-        if (markAsCorrect && current.isAccepted) {
-          return { ...current, isAccepted: false }
-        }
-      }
-      return current
-    })
-    updateQuestionAcceptanceState(markAsCorrect ? targetAnswer.id : null)
-    if (isCurrentUserAuthor) {
-      if (!wasAccepted && markAsCorrect) {
-        adjustCurrentUserResolvedCount(1)
-      } else if (wasAccepted && !markAsCorrect) {
-        adjustCurrentUserResolvedCount(-1)
-      }
-      if (markAsCorrect && otherAcceptedIdsBefore.length) {
-        adjustCurrentUserResolvedCount(-otherAcceptedIdsBefore.length)
-      }
-    }
-    return
-  }
 
   if (verifyingAnswerId.value) {
     return
@@ -570,11 +532,6 @@ const handleDeleteQuestion = async () => {
   }
 }
 
-const formatDescription = (text) => {
-  if (!text) return ''
-  return text.replace(/\n/g, '<br>')
-}
-
 const timeAgo = (dateString) => {
   const date = new Date(dateString)
   const now = new Date()
@@ -605,7 +562,7 @@ const scrollToAnswer = async (answerId) => {
 
 onMounted(async () => {
   await loadQuestion()
-  await loadAnswers()
+  if (question.value) await loadAnswers()
 })
 </script>
 
@@ -632,6 +589,31 @@ onMounted(async () => {
   text-align: center;
   padding: 40px 20px;
   color: #6b7280;
+}
+
+.error-state {
+  display: grid;
+  justify-items: center;
+  gap: 1rem;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+}
+
+.retry-button {
+  width: fit-content;
+  padding: 0.65rem 1rem;
+  border: 0;
+  border-radius: 8px;
+  background: #16834b;
+  color: white;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.retry-button:hover {
+  background: #116b3d;
 }
 
 .content {
@@ -710,6 +692,11 @@ onMounted(async () => {
   border-radius: 8px;
   line-height: 1.7;
   color: #3b4045;
+}
+
+.question-description {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .code {
@@ -857,4 +844,4 @@ button:disabled {
     padding: 16px;
   }
 }
-</style>  
+</style>

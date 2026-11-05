@@ -10,7 +10,7 @@
           <li>Build portfolio</li>
           <li>Gain experience</li>
           <li>Help community</li>
-          <li>Get 5-star ratings</li>
+          <li>Build a reputation through resolved questions</li>
           <li>Learn by teaching</li>
         </ul>
       </div>
@@ -36,8 +36,6 @@
 // Импорт изображения
 import heroImage3 from '@/assets/images/damirrn.png'
 
-// Для отладки - проверка пути
-console.log('Image imported:', heroImage3)
 </script>
 
 <style scoped>

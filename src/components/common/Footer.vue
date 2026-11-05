@@ -3,7 +3,7 @@
     <div class="footer-container">
       <div class="footer-top">
         <div class="footer-left">
-          <h1 class="footer-logo">Skillgig</h1>
+          <h1 class="footer-logo">SkillGig</h1>
         </div>
 
         <div class="footer-right">
@@ -17,20 +17,8 @@
             </nav>
           </div>
 
-          <div class="footer-social-section">
-            <h4 class="footer-section-title">Socials</h4>
-            <div class="footer-social-icons">
-              <a href="#" class="footer-social-icon" aria-label="Instagram">
-                <img src="@/assets/images/socialmedias/vecteezy_instagram-logo-png-instagram-icon-transparent_18930460.png" alt="Instagram" />
-              </a>
-              <a href="#" class="footer-social-icon" aria-label="WhatsApp">
-                <img src="@/assets/images/socialmedias/vecteezy_whatsapp-logo-png-whatsapp-icon-png-whatsapp-transparent_18930462.png" alt="WhatsApp" />
-              </a>
-              <a href="#" class="footer-social-icon"  aria-label="Telegram">
-                <img src="@/assets/images/socialmedias/Vector (6).png" style="width: 22px; height: 22px;" alt="Telegram" />
-              </a>
-            </div>
-            
+          <div class="footer-contact-section">
+            <h4 class="footer-section-title">Contact</h4>
             <div class="footer-contact-info">
               <p class="footer-contact-item">
                 <span class="contact-label">Phone:</span>
@@ -46,7 +34,7 @@
       </div>
 
       <div class="footer-bottom">
-        <p class="footer-copyright">© 2025 Skillgig. All rights reserved.</p>
+        <p class="footer-copyright">© {{ currentYear }} SkillGig. All rights reserved.</p>
       </div>
     </div>
   </footer>
@@ -54,6 +42,8 @@
 
 <script setup>
 import { RouterLink } from 'vue-router'
+
+const currentYear = new Date().getFullYear()
 </script>
 
 <style scoped>
@@ -133,39 +123,11 @@ import { RouterLink } from 'vue-router'
   color: #fff;
 }
 
-.footer-social-section {
+.footer-contact-section {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
   flex: 1;
-}
-
-.footer-social-icons {
-  display: flex;
-  gap: 1.5rem;
-  align-items: center;
-}
-
-.footer-social-icon {
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  cursor: pointer;
-}
-
-.footer-social-icon:hover {
-  opacity: 0.7;
-  transform: translateY(-3px);
-}
-
-.footer-social-icon img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: brightness(0) invert(1);
 }
 
 .footer-contact-info {
@@ -286,17 +248,8 @@ import { RouterLink } from 'vue-router'
     gap: 1.25rem;
   }
 
-  .footer-social-section {
+  .footer-contact-section {
     gap: 1.5rem;
-  }
-
-  .footer-social-icons {
-    gap: 1.25rem;
-  }
-
-  .footer-social-icon {
-    width: 32px;
-    height: 32px;
   }
 
   .footer-contact-info {

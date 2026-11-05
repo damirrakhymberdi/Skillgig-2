@@ -26,7 +26,6 @@ const parseSkillsValue = (value) => {
 
 export const buildProfileQuery = ({
   name,
-  email,
   userRole,
   primaryRole,
   bio,
@@ -53,7 +52,6 @@ export const buildProfileQuery = ({
   const resolvedUserRole = userRole ?? profile?.userRole ?? ''
 
   applyValue('name', name ?? profile?.fullName)
-  applyValue('email', email ?? profile?.email)
   applyValue('userRole', resolvedUserRole || undefined)
   applyValue('primaryRole', resolvedPrimaryRole || undefined)
   // legacy field so older fallback logic still works

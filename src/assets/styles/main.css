@@ -63,6 +63,22 @@ img {
   display: block;
 }
 
+:focus-visible {
+  outline: 3px solid rgba(22, 131, 75, 0.72);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 #app {
   min-height: 100vh;
 }

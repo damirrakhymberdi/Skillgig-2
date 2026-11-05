@@ -22,6 +22,10 @@
         <h3 class="question-title">{{ questionTitle }}</h3>
       </div>
 
+      <p v-if="errorMessage" class="chat-error" role="alert">
+        {{ errorMessage }}
+      </p>
+
       <!-- Messages -->
       <div class="messages-container" ref="messagesContainer">
         <div v-if="loading" class="loading-messages">
@@ -29,6 +33,9 @@
         </div>
         
         <div v-else class="messages-list">
+          <p v-if="messages.length === 0 && !errorMessage" class="empty-messages">
+            Әзірге хабарлама жоқ. Әңгімені баста.
+          </p>
           <div
             v-for="message in messages"
             :key="message.id"
@@ -53,22 +60,26 @@
 
       <!-- Message Input -->
       <div class="message-input-container">
+        <p v-if="sendError" class="chat-error" role="alert">{{ sendError }}</p>
         <form @submit.prevent="handleSendMessage" class="message-form">
           <textarea
+            id="chat-message"
             v-model="messageText"
             class="message-input"
             placeholder="Хабарлама жазу..."
+            aria-label="Хабарлама мәтіні"
+            maxlength="5000"
             rows="1"
             @keydown.enter.exact.prevent="handleSendMessage"
-            @keydown.shift.enter="handleNewLine"
+            :disabled="Boolean(errorMessage) || sending"
             ref="messageInputRef"
           ></textarea>
           <button
             type="submit"
             class="btn-send"
-            :disabled="!messageText.trim()"
+            :disabled="!messageText.trim() || sending || Boolean(errorMessage)"
           >
-            Жіберу
+            {{ sending ? 'Жіберілуде…' : 'Жіберу' }}
           </button>
         </form>
       </div>
@@ -77,124 +88,80 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/useAuthStore'
+import { fetchQuestionById } from '@/services/questionsService'
+import { fetchUserById } from '@/services/userservice'
+import { fetchChatMessages, sendChatMessage } from '@/services/chatService'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
-const questionId = route.params.questionId
+const questionId = String(route.params.questionId || '')
+const partnerId = computed(() => {
+  const partner = route.query.partner
+  return Array.isArray(partner) ? partner[0] || '' : partner || ''
+})
 const loading = ref(false)
 const messages = ref([])
 const messageText = ref('')
 const partnerName = ref('')
 const questionTitle = ref('')
 const isExpert = ref(false)
-const currentUserName = ref('Мен')
+const errorMessage = ref('')
+const sendError = ref('')
+const sending = ref(false)
+const currentUserName = computed(() => {
+  const user = authStore.user
+  return user?.name || [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Мен'
+})
 
 const messagesContainer = ref(null)
 const messageInputRef = ref(null)
 
-// Хабарламаларды жүктеу
-const loadMessages = async () => {
-  loading.value = true
+const loadMessages = async ({ initial = false } = {}) => {
+  if (initial) loading.value = true
   try {
-    // Backend дайын болғанда:
-    // const response = await fetch(`/api/questions/${questionId}/chat`)
-    // const data = await response.json()
-    // messages.value = data.messages
-    // partnerName.value = data.partnerName
-    // questionTitle.value = data.questionTitle
-
-    // MOCK деректер
-    await new Promise(resolve => setTimeout(resolve, 500))
-    
-    partnerName.value = 'Ерлан Б.'
-    questionTitle.value = 'Flutter-де ListView lag болады'
-    isExpert.value = true
-    
-    messages.value = [
-      {
-        id: 1,
-        text: 'ListView.builder пайдаланыңыз, ол әлдеқайда тиімдірек.',
-        isOwn: false,
-        createdAt: new Date(Date.now() - 3600000).toISOString()
-      },
-      {
-        id: 2,
-        text: 'Рахмет! Мысал кода бермесіз бе?',
-        isOwn: true,
-        createdAt: new Date(Date.now() - 3500000).toISOString()
-      },
-      {
-        id: 3,
-        text: 'Әрине! Міне мысал:\n\n```dart\nListView.builder(\n  itemCount: items.length,\n  itemBuilder: (context, index) => ItemWidget(items[index]),\n)\n```',
-        isOwn: false,
-        createdAt: new Date(Date.now() - 3400000).toISOString()
-      }
-    ]
-    
-    // Скроллды төменге жылжыту
-    await nextTick()
-    scrollToBottom()
-    
+    const latest = await fetchChatMessages(questionId, partnerId.value)
+    const previousLastId = messages.value.at(-1)?.id
+    messages.value = latest.map((message) => ({
+      ...message,
+      isOwn: message.senderId === authStore.user?.id
+    }))
+    if (initial || messages.value.at(-1)?.id !== previousLastId) {
+      await nextTick()
+      scrollToBottom()
+    }
   } catch (error) {
-    console.error('Error loading messages:', error)
+    if (initial) throw error
+    console.error('Could not refresh chat messages:', error)
   } finally {
-    loading.value = false
+    if (initial) loading.value = false
   }
 }
 
 // Хабарлама жіберу
 const handleSendMessage = async () => {
-  if (!messageText.value.trim()) return
+  const text = messageText.value.trim()
+  if (!text || sending.value || !partnerId.value) return
 
-  const newMessage = {
-    id: messages.value.length + 1,
-    text: messageText.value.trim(),
-    isOwn: true,
-    createdAt: new Date().toISOString()
-  }
-
-  // Жібергеннен кейін деректерді тізімге қосу (optimistic update)
-  messages.value.push(newMessage)
-  messageText.value = ''
-  
-  // Input-ты қайта өлшемдеу
-  await nextTick()
-  adjustTextareaHeight()
-
-  // Скроллды төменге жылжыту
-  scrollToBottom()
-
+  sending.value = true
+  sendError.value = ''
   try {
-    // Backend дайын болғанда:
-    // await fetch(`/api/questions/${questionId}/chat/messages`, {
-    //   method: 'POST',
-    //   headers: {
-    //     'Content-Type': 'application/json',
-    //     'Authorization': `Bearer ${token}`
-    //   },
-    //   body: JSON.stringify({ text: newMessage.text })
-    // })
-    
-    console.log('Message sent:', newMessage.text)
-    
+    const message = await sendChatMessage(questionId, partnerId.value, text)
+    messages.value.push({ ...message, isOwn: true })
+    messageText.value = ''
+    await nextTick()
+    adjustTextareaHeight()
+    scrollToBottom()
   } catch (error) {
     console.error('Error sending message:', error)
-    // Хабарламаны жою егер қате болса
-    messages.value.pop()
-    alert('Хабарлама жіберу мүмкін болмады')
+    sendError.value = error?.message || 'Хабарламаны жіберу мүмкін болмады.'
+  } finally {
+    sending.value = false
   }
-}
-
-// Enter + Shift = жаңа жол
-const handleNewLine = () => {
-  // Shift+Enter арқылы жаңа жол қосуға мүмкіндік беру
-  messageText.value += '\n'
-  nextTick(() => {
-    adjustTextareaHeight()
-  })
 }
 
 // Textarea биіктігін автоматты түрде реттеу
@@ -237,11 +204,7 @@ const handleBack = () => {
 let pollingInterval = null
 
 const startPolling = () => {
-  // 5 секунд сайын жаңарту (чат онлайн емес, тек refresh арқылы)
-  pollingInterval = setInterval(() => {
-    // Backend дайын болғанда:
-    // loadNewMessages()
-  }, 5000)
+  pollingInterval = setInterval(() => loadMessages(), 5000)
 }
 
 const stopPolling = () => {
@@ -259,9 +222,42 @@ watch(() => messageText.value, () => {
 })
 
 onMounted(async () => {
-  await loadMessages()
-  adjustTextareaHeight()
-  // startPolling() // Қазір қосылмаған, себебі онлайн чат жоқ
+  loading.value = true
+  try {
+    if (!partnerId.value) {
+      throw new Error('Әңгімелесушіні сұрақ бетінен таңдаңыз.')
+    }
+    if (!authStore.getIsAuthenticated) {
+      throw new Error('Чатқа кіру үшін аккаунтыңызға кіріңіз.')
+    }
+
+    await authStore.hydrateUser()
+    if (!authStore.user?.id) {
+      throw new Error('Пайдаланушыны анықтай алмадық. Қайта кіріп көріңіз.')
+    }
+
+    const [question, partner] = await Promise.all([
+      fetchQuestionById(questionId),
+      fetchUserById(partnerId.value)
+    ])
+    if (!question || !partner) {
+      throw new Error('Сұрақ немесе әңгімелесуші табылмады.')
+    }
+
+    questionTitle.value = question.title
+    partnerName.value = partner.name || partner.username || 'Пайдаланушы'
+    isExpert.value = partner.role === 'expert'
+    await loadMessages({ initial: true })
+    adjustTextareaHeight()
+    startPolling()
+  } catch (error) {
+    console.error('Could not open chat:', error)
+    errorMessage.value = error?.status === 403
+      ? 'Бұл сұрақтағы әңгімеге қатысуға рұқсатыңыз жоқ.'
+      : error?.message || 'Чатты жүктеу мүмкін болмады. Қайта көріңіз.'
+  } finally {
+    loading.value = false
+  }
 })
 
 onUnmounted(() => {
@@ -383,6 +379,18 @@ onUnmounted(() => {
   color: #6b7280;
 }
 
+.chat-error {
+  margin: 0.75rem 1.5rem;
+  color: #8b3d32;
+  font-size: 0.9rem;
+}
+
+.empty-messages {
+  margin: auto;
+  color: #6b7280;
+  text-align: center;
+}
+
 .messages-list {
   display: flex;
   flex-direction: column;
@@ -410,7 +418,7 @@ onUnmounted(() => {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #16834b;
   color: white;
   display: flex;
   align-items: center;
@@ -435,7 +443,7 @@ onUnmounted(() => {
 }
 
 .message-own .message-text {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #16834b;
   color: white;
   border-bottom-right-radius: 4px;
 }
@@ -482,8 +490,8 @@ onUnmounted(() => {
 
 .message-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #16834b;
+  box-shadow: 0 0 0 3px rgba(22, 131, 75, 0.12);
 }
 
 .message-input::placeholder {
@@ -492,7 +500,7 @@ onUnmounted(() => {
 
 .btn-send {
   padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #16834b;
   color: white;
   border: none;
   border-radius: 8px;
@@ -505,7 +513,8 @@ onUnmounted(() => {
 
 .btn-send:hover:not(:disabled) {
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  background: #116b3d;
+  box-shadow: 0 4px 12px rgba(22, 131, 75, 0.2);
 }
 
 .btn-send:disabled {

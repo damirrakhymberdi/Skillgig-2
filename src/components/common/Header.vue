@@ -9,7 +9,7 @@
         <nav class="primary-nav" aria-label="Primary navigation">
           <RouterLink to="/" class="nav-link" exact-active-class="is-active">Home</RouterLink>
           <RouterLink to="/get-started" class="nav-link" exact-active-class="is-active">Get started</RouterLink>
-          <RouterLink to="/questions" class="nav-link" exact-active-class="is-active">QuestionPage</RouterLink>
+          <RouterLink to="/questions" class="nav-link" exact-active-class="is-active">Questions</RouterLink>
           <RouterLink to="/faq" class="nav-link" exact-active-class="is-active">FAQ</RouterLink>
           <RouterLink to="/about" class="nav-link" exact-active-class="is-active">About</RouterLink>
         </nav>
@@ -46,7 +46,7 @@
         <nav class="mobile-nav" aria-label="Mobile navigation">
           <RouterLink to="/" class="mobile-link" exact-active-class="is-active" @click="closeMenu">Home</RouterLink>
           <RouterLink to="/get-started" class="mobile-link" exact-active-class="is-active" @click="closeMenu">Get started</RouterLink>
-          <RouterLink to="/questions" class="mobile-link" exact-active-class="is-active" @click="closeMenu">QuestionPage</RouterLink>
+          <RouterLink to="/questions" class="mobile-link" exact-active-class="is-active" @click="closeMenu">Questions</RouterLink>
           <RouterLink to="/faq" class="mobile-link" exact-active-class="is-active" @click="closeMenu">FAQ</RouterLink>
           <RouterLink to="/about" class="mobile-link" exact-active-class="is-active" @click="closeMenu">About</RouterLink>
           <template v-if="!isAuthenticated">

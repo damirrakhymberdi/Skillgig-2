@@ -1,10 +1,11 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
 from ..database import get_db
-from ..deps import get_current_active_user
+from ..deps import get_current_active_user, get_optional_current_user
 from ..models import Answer, Question, User, ExpertProfile
 from ..schemas.answer import (
     AnswerCreate,
@@ -21,6 +22,16 @@ from ..schemas.question import (
 from ..schemas.user import ExpertProfilePublic
 
 router = APIRouter(prefix="/questions", tags=["questions"])
+PUBLIC_STATUSES = ("published", "resolved")
+
+
+def _require_visible_question(question: Optional[Question], user: Optional[User]) -> Question:
+    if not question or (
+        question.status not in PUBLIC_STATUSES
+        and (not user or question.client_id != user.id)
+    ):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
+    return question
 
 
 def _clean_list(values: Optional[List[str]]) -> List[str]:
@@ -41,7 +52,7 @@ def _client_name(user: Optional[User]) -> str:
     full_name = " ".join(part for part in parts if part).strip()
     if full_name:
         return full_name
-    return user.username or user.email or "Аноним"
+    return user.username or "Пайдаланушы"
 
 
 def _profile_to_schema(profile) -> Optional[ExpertProfilePublic]:
@@ -97,7 +108,6 @@ def question_to_schema(question: Question) -> QuestionOut:
         status=question.status,
         client_id=question.client_id,
         client_name=_client_name(question.client),
-        client_email=client.email if client else None,
         client_role=client.role if client else None,
         client_profile=client_profile,
         answers_count=len(question.answers or []),
@@ -110,6 +120,9 @@ def question_to_schema(question: Question) -> QuestionOut:
 
 def answer_to_schema(answer: Answer) -> AnswerOut:
     author = answer.author
+    expert_name = answer.expert_name
+    if author and expert_name and expert_name.casefold() == author.email.casefold():
+        expert_name = None
     author_profile = (
         _profile_to_schema(author.expert_profile) if author else None
     )
@@ -121,13 +134,12 @@ def answer_to_schema(answer: Answer) -> AnswerOut:
         question_title=answer.question.title if answer.question else None,
         author_id=answer.author_id,
         author_answers_count=author_answers_count,
-        author_email=author.email if author else None,
         author_role=author.role if author else None,
         author_profile=author_profile,
         answer_text=answer.answer_text,
         code_example=answer.code_example,
         links=answer.links or [],
-        expert_name=answer.expert_name or _client_name(answer.author),
+        expert_name=expert_name or _client_name(author),
         expert_rating=answer.expert_rating or 0.0,
         is_accepted=answer.is_accepted,
         created_at=answer.created_at,
@@ -141,6 +153,11 @@ def list_questions(
     offset: int = Query(0, ge=0),
     category: Optional[str] = None,
     difficulty: Optional[str] = None,
+    search: Optional[str] = None,
+    sort_by: str = Query(
+        "newest",
+        pattern="^(newest|oldest|most-answered|least-answered)$",
+    ),
     status_filter: Optional[str] = Query("published"),
     tags: Optional[List[str]] = Query(None),
 ) -> QuestionListResponse:
@@ -150,34 +167,61 @@ def list_questions(
             joinedload(Question.client).joinedload(User.expert_profile),
             joinedload(Question.answers),
         )
-        .order_by(Question.created_at.desc())
+        .filter(Question.status.in_(PUBLIC_STATUSES))
     )
 
     if category:
         query = query.filter(Question.category == category)
     if difficulty:
         query = query.filter(Question.difficulty == difficulty)
+    normalized_search = (search or "").strip()
+    if normalized_search:
+        search_pattern = f"%{normalized_search}%"
+        query = query.filter(
+            or_(
+                Question.title.ilike(search_pattern),
+                Question.description.ilike(search_pattern),
+            )
+        )
     if status_filter and status_filter.lower() != "all":
         normalized = status_filter.lower()
-        if normalized == "published":
-            query = query.filter(Question.status.in_(["published", "resolved"]))
-        else:
-            query = query.filter(Question.status == status_filter)
+        if normalized != "published":
+            query = query.filter(Question.status == normalized)
 
-    questions = query.all()
+    if sort_by == "oldest":
+        query = query.order_by(Question.created_at.asc(), Question.id.asc())
+    elif sort_by in {"most-answered", "least-answered"}:
+        answer_count = (
+            select(func.count(Answer.id))
+            .where(Answer.question_id == Question.id)
+            .scalar_subquery()
+        )
+        count_order = (
+            answer_count.desc()
+            if sort_by == "most-answered"
+            else answer_count.asc()
+        )
+        query = query.order_by(
+            count_order, Question.created_at.desc(), Question.id.desc()
+        )
+    else:
+        query = query.order_by(Question.created_at.desc(), Question.id.desc())
 
     if tags:
         normalized_tags = {tag.lower() for tag in tags if tag}
-        filtered = []
-        for question in questions:
-            existing_tags = {tag.lower() for tag in (question.tags or [])}
-            if normalized_tags.issubset(existing_tags):
-                filtered.append(question)
-        questions = filtered
-
-    total = len(questions)
-    slice_end = offset + limit
-    items = questions[offset:slice_end]
+        questions = query.all()
+        filtered = [
+            question
+            for question in questions
+            if normalized_tags.issubset(
+                {tag.lower() for tag in (question.tags or [])}
+            )
+        ]
+        total = len(filtered)
+        items = filtered[offset : offset + limit]
+    else:
+        total = query.order_by(None).count()
+        items = query.offset(offset).limit(limit).all()
 
     return QuestionListResponse(
         total=total,
@@ -224,7 +268,11 @@ def create_question(
 
 
 @router.get("/{question_id}", response_model=QuestionOut)
-def get_question(question_id: str, db: Session = Depends(get_db)) -> QuestionOut:
+def get_question(
+    question_id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+) -> QuestionOut:
     question = (
         db.query(Question)
         .options(
@@ -234,9 +282,7 @@ def get_question(question_id: str, db: Session = Depends(get_db)) -> QuestionOut
         .filter(Question.id == question_id)
         .first()
     )
-    if not question:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
-    return question_to_schema(question)
+    return question_to_schema(_require_visible_question(question, current_user))
 
 
 @router.put("/{question_id}", response_model=QuestionOut)
@@ -314,7 +360,7 @@ def delete_question(
 
 
 @router.post("/{question_id}/submit", response_model=QuestionOut)
-def submit_question_for_review(
+def publish_draft_question(
     question_id: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user),
@@ -325,9 +371,14 @@ def submit_question_for_review(
     if question.client_id != current_user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only submit your own questions",
+            detail="You can only publish your own questions",
         )
-    question.status = "submitted"
+    if question.status != "draft":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only draft questions can be published",
+        )
+    question.status = "published"
     db.add(question)
     db.commit()
     db.refresh(question)
@@ -335,7 +386,11 @@ def submit_question_for_review(
 
 
 @router.get("/{question_id}/answers", response_model=List[AnswerOut])
-def list_answers(question_id: str, db: Session = Depends(get_db)) -> List[AnswerOut]:
+def list_answers(
+    question_id: str,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_current_user),
+) -> List[AnswerOut]:
     question = (
         db.query(Question)
         .options(
@@ -349,9 +404,7 @@ def list_answers(question_id: str, db: Session = Depends(get_db)) -> List[Answer
         .filter(Question.id == question_id)
         .first()
     )
-    if not question:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
-
+    _require_visible_question(question, current_user)
     return [answer_to_schema(answer) for answer in question.answers]
 
 
@@ -374,6 +427,21 @@ def create_answer(
     )
     if not question:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Question not found")
+    if question.status not in PUBLIC_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Answers are only available for published questions",
+        )
+    if question.client_id == current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot answer your own question",
+        )
+    if current_user.expert_profile is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Complete an expert profile before answering questions",
+        )
 
     links = _clean_list(payload.links)
     answer = Answer(
@@ -534,18 +602,17 @@ def verify_answer(
 
     if is_marked_correct:
         _ensure_expert_profile(answer.author, db)
-        other_author_answers = (
+        other_accepted_answers = (
             db.query(Answer)
             .options(joinedload(Answer.author).joinedload(User.expert_profile))
             .filter(
                 Answer.question_id == question_id,
-                Answer.author_id == answer.author_id,
                 Answer.is_accepted.is_(True),
                 Answer.id != answer.id,
             )
             .all()
         )
-        for other in other_author_answers:
+        for other in other_accepted_answers:
             other.is_accepted = False
             _adjust_resolved_questions(other.author, -1)
         if not answer.is_accepted:
@@ -558,19 +625,17 @@ def verify_answer(
             _adjust_resolved_questions(answer.author, -1)
         answer.is_accepted = False
         if question.accepted_answer_id == answer.id:
-            question.accepted_answer_id = None
             replacement = (
                 db.query(Answer)
                 .filter(
                     Answer.question_id == question.id,
                     Answer.is_accepted.is_(True),
+                    Answer.id != answer.id,
                 )
                 .first()
             )
-            if replacement:
-                question.accepted_answer_id = replacement.id
-        if not question.accepted_answer_id:
-            question.status = "published"
+            question.accepted_answer_id = replacement.id if replacement else None
+        question.status = "resolved" if question.accepted_answer_id else "published"
 
     db.add(question)
     db.add(answer)

@@ -49,6 +49,7 @@
               :hide-filters="true"
               :external-sort="sortBy"
               :category="selectedCategory"
+              :search-query="searchQuery"
               @update:sort="handleSortSelect"
             />
             </div>
@@ -60,28 +61,50 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import CategoriesSidebar from '@/components/getstarted/CategoriesSidebar.vue'
 import QuestionsList from '@/components/getstarted/QuestionsList.vue'
 import StatsBar from '@/components/getstarted/StatsBar.vue'
 
 const router = useRouter()
+const route = useRoute()
 const sortBy = ref('newest')
-const searchQuery = ref('')
-const selectedCategory = ref('')
+const searchQuery = ref(
+  Array.isArray(route.query.search)
+    ? route.query.search[0] || ''
+    : route.query.search || ''
+)
+const selectedCategory = ref(
+  Array.isArray(route.query.category)
+    ? route.query.category[0] || ''
+    : route.query.category || ''
+)
+
+watch(
+  () => route.query.search,
+  (value) => {
+    searchQuery.value = Array.isArray(value) ? value[0] || '' : value || ''
+  }
+)
+
+watch(
+  () => route.query.category,
+  (value) => {
+    selectedCategory.value = Array.isArray(value) ? value[0] || '' : value || ''
+  }
+)
 
 const handleAskQuestion = () => {
   router.push('/ask')
 }
 
 const handleSearch = () => {
-  if (searchQuery.value.trim()) {
-    router.push({
-      path: '/questions',
-      query: { search: searchQuery.value.trim() }
-    })
-  }
+  const search = searchQuery.value.trim()
+  router.push({
+    path: '/questions',
+    query: { ...route.query, search: search || undefined }
+  })
 }
 
 const handleSortSelect = (eventOrValue) => {
@@ -99,8 +122,8 @@ const handleCategoryChange = (val) => {
 <style scoped>
 .questions-list-page {
   min-height: 100vh;
-  background-color: #ffffff;
-  padding-top: 0;
+  background-color: #f6f8f6;
+  padding: 88px 1.25rem 2rem;
 }
 
 .main-content {
@@ -108,19 +131,19 @@ const handleCategoryChange = (val) => {
 }
 
 .container {
-  max-width: 1500px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 0rem;
+  padding: 0;
 }
 
 .stats-wrapper {
-  padding: 0 0 0.5rem 0;
+  padding: 0 0 1rem;
 }
 
 .content-grid {
   display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 0rem;
+  grid-template-columns: minmax(230px, 280px) minmax(0, 1fr);
+  gap: 1rem;
   align-items: start;
 }
 
@@ -131,22 +154,21 @@ const handleCategoryChange = (val) => {
 }
 
 .questions-scroll {
-  max-height: calc(100vh - 180px);
-  overflow-y: auto;
-  padding-right: 0.25rem;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
 }
 
 .header-card {
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 0;
-  border-left: none;
-  border-right: none;
-  padding: 0.2rem 1rem;
-  margin-bottom: 0rem;
+  border: 1px solid #e5eae6;
+  border-radius: 14px;
+  padding: 0.85rem 1.15rem;
+  margin-bottom: 1rem;
   position: sticky;
-  top: 0;
+  top: 78px;
   z-index: 5;
+  box-shadow: 0 8px 24px rgba(26, 42, 31, 0.05);
 }
 
 .section-header {
@@ -155,7 +177,7 @@ const handleCategoryChange = (val) => {
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
-  padding: 0 0.75rem;
+  padding: 0;
 }
 
 .header-actions {
@@ -226,7 +248,7 @@ const handleCategoryChange = (val) => {
 
 .sidebar-sticky {
   position: sticky;
-  top: 0;
+  top: 96px;
   align-self: start;
 }
 
@@ -246,7 +268,7 @@ const handleCategoryChange = (val) => {
 
 .btn-ask-question {
   padding: 0.75rem 1.5rem;
-  background-color: #4CAF4F;
+  background-color: #16834b;
   color: white;
   border: none;
   border-radius: 6px;
@@ -259,7 +281,7 @@ const handleCategoryChange = (val) => {
 }
 
 .btn-ask-question:hover {
-  background-color: #45a049;
+  background-color: #116b3d;
   transform: translateY(-2px);
   box-shadow: 0 8px 12px rgba(0, 0, 0, 0.25);
 }
@@ -364,20 +386,29 @@ const handleCategoryChange = (val) => {
 
 @media (max-width: 768px) {
   .questions-list-page {
-    padding-top: 80px;
+    padding: 82px 0.875rem 1.5rem;
   }
 
   .content-grid {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
   .header-card {
-    margin: 0 0 0.75rem 0;
+    top: 70px;
+    margin: 0 0 0.75rem;
+    padding: 0.9rem;
   }
 
   .section-header {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .search-inline {
+    flex: none;
+    width: 100%;
+    max-width: none;
   }
 
   .header-actions {

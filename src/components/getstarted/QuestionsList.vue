@@ -65,6 +65,10 @@ const props = defineProps({
   category: {
     type: String,
     default: ''
+  },
+  searchQuery: {
+    type: String,
+    default: ''
   }
 })
 
@@ -78,6 +82,7 @@ const totalPages = ref(1)
 const hasMore = ref(true)
 const sentinel = ref(null)
 let observer = null
+let reloadQueued = false
 const sortBy = ref(props.externalSort || 'newest')
 const PAGE_SIZE = 5
 
@@ -125,7 +130,10 @@ const sortItems = (items) => {
 }
 
 const loadQuestions = async (append = false) => {
-  if (loading.value) return
+  if (loading.value) {
+    if (!append) reloadQueued = true
+    return
+  }
   loading.value = true
   errorMessage.value = ''
   try {
@@ -134,7 +142,9 @@ const loadQuestions = async (append = false) => {
       limit: PAGE_SIZE,
       offset,
       status: 'published',
-      category: props.category || undefined
+      category: props.category || undefined,
+      search: props.searchQuery.trim() || undefined,
+      sortBy: sortBy.value
     })
 
     let items = Array.isArray(response.items) ? response.items : []
@@ -172,10 +182,17 @@ const loadQuestions = async (append = false) => {
     if (!append) {
       questions.value = []
     }
-    errorMessage.value =
-      'Сұрақтарды жүктеу мүмкін болмады. Кейінірек қайталап көріңіз.'
+    errorMessage.value = error?.status
+      ? 'Сұрақтарды жүктеу мүмкін болмады. Қайта көріңіз.'
+      : 'Серверге қосыла алмадық. Backend іске қосулы екенін тексеріп, қайта көріңіз.'
   } finally {
     loading.value = false
+    if (reloadQueued) {
+      reloadQueued = false
+      currentPage.value = 1
+      hasMore.value = true
+      loadQuestions(false)
+    }
   }
 }
 
@@ -212,6 +229,15 @@ watch(
 
 watch(
   () => props.category,
+  () => {
+    currentPage.value = 1
+    hasMore.value = true
+    loadQuestions(false)
+  }
+)
+
+watch(
+  () => props.searchQuery,
   () => {
     currentPage.value = 1
     hasMore.value = true
@@ -291,7 +317,7 @@ onBeforeUnmount(() => {
 .questions-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  gap: 0.75rem;
 }
 
 .empty-state {

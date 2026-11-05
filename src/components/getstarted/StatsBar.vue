@@ -1,6 +1,12 @@
 <template>
   <div class="stats-bar">
-      <div class="container stats-content">
+    <div v-if="loading" class="container stats-status" aria-live="polite">
+      Loading platform stats...
+    </div>
+    <div v-else-if="statsError" class="container stats-status stats-error" role="status">
+      {{ statsError }}
+    </div>
+    <div v-else class="container stats-content">
       <span class="stat-item">
         <strong>{{ stats.totalQuestions.toLocaleString() }}</strong> questions asked
       </span>
@@ -10,7 +16,7 @@
       </span>
       <span class="separator">•</span>
       <span class="stat-item">
-        <strong>{{ stats.successRate }}%</strong> success rate
+        <strong>{{ stats.successRate }}%</strong> questions resolved
       </span>
     </div>
   </div>
@@ -27,18 +33,16 @@ const stats = ref({
 })
 
 const loading = ref(false)
+const statsError = ref('')
 
 const loadStats = async () => {
   loading.value = true
+  statsError.value = ''
   try {
     stats.value = await fetchPlatformStats()
   } catch (error) {
     console.error('Error loading stats:', error)
-    stats.value = {
-      totalQuestions: 0,
-      totalExperts: 0,
-      successRate: 0
-    }
+    statsError.value = 'Platform stats are unavailable until the backend is running.'
   } finally {
     loading.value = false
   }
@@ -69,6 +73,16 @@ onMounted(() => {
   gap: 1rem;
   font-size: 0.95rem;
   color: #6b7280;
+}
+
+.stats-status {
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.stats-error {
+  color: #8b5a19;
 }
 
 .stat-item strong {

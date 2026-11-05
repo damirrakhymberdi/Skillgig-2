@@ -52,11 +52,11 @@
         </div>
   
         <!-- Controls -->
-        <button class="carousel-control-prev" type="button" @click="prevSlide">
+        <button class="carousel-control-prev" type="button" aria-label="Previous slide" @click="prevSlide">
           <span class="carousel-control-prev-icon" aria-hidden="true"></span>
           <span class="visually-hidden">Previous</span>
         </button>
-        <button class="carousel-control-next" type="button" @click="nextSlide">
+        <button class="carousel-control-next" type="button" aria-label="Next slide" @click="nextSlide">
           <span class="carousel-control-next-icon" aria-hidden="true"></span>
           <span class="visually-hidden">Next</span>
         </button>
@@ -141,7 +141,9 @@ const stopAutoSlide = () => {
 
 // Компонент монтталғанда автоматты ауысуды бастау
 onMounted(() => {
-  startAutoSlide()
+  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    startAutoSlide()
+  }
 })
 
 // Компонент демонтталғанда автоматты ауысуды тоқтату
@@ -430,18 +432,20 @@ onUnmounted(() => {
   
   @media (max-width: 480px) {
     .carousel-caption {
-      left: 24%;
-      right: 24%;
-      text-align: center;
+      left: 8%;
+      right: 8%;
+      max-width: none;
+      text-align: left;
     }
 
     .hero-title {
-      font-size:  3rem;
-      margin-bottom: 2rem;
+      font-size: clamp(2.25rem, 10vw, 3rem);
+      line-height: 1.12;
+      margin-bottom: 1.5rem;
     }
 
     .hero-subtitle {
-      font-size: 1.5rem;
+      font-size: 1.15rem;
     }
 
     .carousel {
@@ -459,6 +463,12 @@ onUnmounted(() => {
       margin: 0 auto;
       display: block;
       width: fit-content;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .carousel-item {
+      transition: none;
     }
   }
   </style>

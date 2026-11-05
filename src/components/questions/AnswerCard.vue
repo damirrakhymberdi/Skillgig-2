@@ -21,8 +21,9 @@
           </RouterLink>
           <h4 v-else class="expert-name">{{ displayName }}</h4>
           <div class="expert-meta">
-        <span class="meta-chip">Correct: {{ resolvedCount }}</span>
-            <span class="meta-chip">Level: {{ levelLabel }}</span>
+            <span v-if="resolvedCount > 0" class="meta-chip">
+              Resolved questions: {{ resolvedCount }}
+            </span>
           </div>
         </div>
       </div>
@@ -33,18 +34,19 @@
     </div>
 
     <div class="answer-content">
-      <p class="answer-text" v-html="formattedAnswerText"></p>
+      <p class="answer-text">{{ answer.answerText }}</p>
       
       <div v-if="codeSnippet" class="code-block">
         <pre><code>{{ codeSnippet }}</code></pre>
       </div>
 
-      <div v-if="answer.links && answer.links.length > 0" class="answer-links">
+      <div v-if="safeLinks.length > 0" class="answer-links">
         <a 
-          v-for="(link, index) in answer.links" 
+          v-for="(link, index) in safeLinks"
           :key="index"
-          :href="link" 
+          :href="link"
           target="_blank"
+          rel="noopener noreferrer"
           class="link-item"
         >
           🔗 {{ link }}
@@ -53,11 +55,11 @@
     </div>
 
     <div
-      v-if="canEdit || canDelete || canModerate"
+      v-if="canEdit || canDelete || canModerate || canMessage"
       class="answer-actions"
     >
       <div
-        v-if="canEdit || canDelete"
+        v-if="canEdit || canDelete || canMessage"
         class="action-buttons"
       >
         <button
@@ -75,6 +77,14 @@
           @click.stop="$emit('delete', answer)"
         >
           Delete
+        </button>
+        <button
+          v-if="canMessage"
+          type="button"
+          class="action-btn"
+          @click.stop="$emit('message', answer)"
+        >
+          Message expert
         </button>
       </div>
 
@@ -97,6 +107,7 @@ import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { buildProfileQuery } from '@/utils/profileFallback'
+import { safeExternalUrl } from '@/utils/safeExternalUrl'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const toNumber = (value, fallback = 0) => {
@@ -135,10 +146,20 @@ const props = defineProps({
   verifying: {
     type: Boolean,
     default: false
+  },
+  canMessage: {
+    type: Boolean,
+    default: false
   }
 })
 
-defineEmits(['edit', 'delete', 'verify'])
+const safeLinks = computed(() =>
+  (Array.isArray(props.answer?.links) ? props.answer.links : [])
+    .map(safeExternalUrl)
+    .filter(Boolean)
+)
+
+defineEmits(['edit', 'delete', 'verify', 'message'])
 
 const showProfileLink = computed(() => {
   return Boolean(props.answer?.authorId) && !props.isOwn
@@ -151,7 +172,6 @@ const profileLinkTarget = computed(() => {
 
   const query = buildProfileQuery({
     name: props.answer?.expertName,
-    email: props.answer?.authorEmail,
     userRole: props.answer?.authorRole,
     primaryRole: props.answer?.authorProfile?.primaryRole,
     avgRating: props.answer?.expertRating,
@@ -169,15 +189,6 @@ const displayName = computed(() => {
     return 'You'
   }
   return props.answer.expertName || 'Аноним'
-})
-
-const formattedAnswerText = computed(() => {
-  const text = props.answer?.answerText || ''
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>')
 })
 
 const codeSnippet = computed(() => {
@@ -209,14 +220,6 @@ const resolvedCount = computed(() =>
       0
   )
 )
-
-const levelLabel = computed(() => {
-  const accepted = resolvedCount.value
-  if (accepted >= 50) return 'Expert'
-  if (accepted >= 20) return 'Pro'
-  if (accepted >= 5) return 'Rising'
-  return 'Newcomer'
-})
 
 const timeAgo = (dateString) => {
   const date = new Date(dateString)

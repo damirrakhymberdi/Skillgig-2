@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import Question, User
+from ..models import ExpertProfile, Question, User
 from ..schemas.stats import PlatformStats
 
 router = APIRouter(prefix="/stats", tags=["stats"])
@@ -11,9 +11,23 @@ router = APIRouter(prefix="/stats", tags=["stats"])
 
 @router.get("", response_model=PlatformStats)
 def platform_stats(db: Session = Depends(get_db)) -> PlatformStats:
-    total_questions = db.query(func.count(Question.id)).scalar() or 0
-    # Count all registered users as IT specialists
-    total_experts = db.query(func.count(User.id)).scalar() or 0
+    public_question_statuses = ("published", "resolved")
+    total_questions = (
+        db.query(func.count(Question.id))
+        .filter(Question.status.in_(public_question_statuses))
+        .scalar()
+        or 0
+    )
+    total_experts = (
+        db.query(func.count(func.distinct(User.id)))
+        .outerjoin(ExpertProfile)
+        .filter(
+            or_(User.role == "expert", ExpertProfile.id.isnot(None)),
+            User.is_active.is_(True),
+        )
+        .scalar()
+        or 0
+    )
     resolved_questions = (
         db.query(func.count(Question.id))
         .filter(Question.status == "resolved")

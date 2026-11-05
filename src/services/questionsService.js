@@ -146,7 +146,6 @@ const normalizeQuestion = (item) => {
     clientId: item.client_id ?? item.clientId ?? item.user_id ?? null,
     clientName:
       item.client_name ?? item.clientName ?? item.clientId ?? 'Аноним',
-    clientEmail: item.client_email ?? item.clientEmail ?? '',
     clientRole: item.client_role ?? item.clientRole ?? '',
     clientProfile: normalizeProfile(
       item.client_profile ?? item.clientProfile ?? null
@@ -175,7 +174,6 @@ const normalizeAnswer = (item) => {
     authorId: item.authorId ?? item.author_id ?? null,
     authorAnswersCount:
       item.author_answers_count ?? item.authorAnswersCount ?? null,
-    authorEmail: item.authorEmail ?? item.author_email ?? '',
     authorRole: item.authorRole ?? item.author_role ?? '',
     authorProfile: normalizeProfile(
       item.authorProfile ?? item.author_profile ?? null
@@ -216,6 +214,8 @@ export const fetchQuestions = async ({
   offset = 0,
   category,
   difficulty,
+  search,
+  sortBy,
   tags,
   status = 'published'
 } = {}) => {
@@ -224,6 +224,8 @@ export const fetchQuestions = async ({
     offset,
     category,
     difficulty,
+    search,
+    sort_by: sortBy,
     status_filter: status,
     tags
   })

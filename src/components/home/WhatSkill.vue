@@ -10,10 +10,10 @@
         </div>
         
         <div class="text-content">
-          <h2 class="section-title">What is Skillgig</h2>
+          <h2 class="section-title">What is SkillGig</h2>
           <p class="intro-text">SkillGig is a platform where people can get help with any IT problem.</p>
           <p class="description-text">
-            It connects two groups: <strong>Clients</strong> - people who have issues in their IT projects (web, mobile, design, backend, DevOps, etc.). <strong>IT specialists</strong> - developers and designers who can solve these problems. Main purpose: Help people fix IT project issues quickly. Let IT specialists gain experience and build their portfolios. Create a place for knowledge sharing and mutual support.
+            It connects two groups: <strong>Clients</strong> - people who have issues in their IT projects (web, mobile, design, backend, DevOps, etc.). <strong>IT specialists</strong> - developers and designers who can share possible solutions. The goal is to help people work through IT project issues and create a place for knowledge sharing and mutual support.
           </p>
           <RouterLink to="/about" class="learn-more-btn">Learn More</RouterLink>
         </div>

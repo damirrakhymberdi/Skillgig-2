@@ -11,8 +11,8 @@ from ..schemas.question import QuestionOut
 from ..schemas.user import (
     ExpertProfilePublic,
     ExpertProfileUpdate,
+    UserDirectoryProfile,
     UserProfileResponse,
-    UserPublic,
 )
 from .questions import answer_to_schema, question_to_schema
 
@@ -76,8 +76,8 @@ def update_expert_profile(
     return ExpertProfilePublic.model_validate(profile, from_attributes=True)
 
 
-@router.get("/experts", response_model=List[UserPublic])
-def list_experts(db: Session = Depends(get_db)) -> List[UserPublic]:
+@router.get("/experts", response_model=List[UserDirectoryProfile])
+def list_experts(db: Session = Depends(get_db)) -> List[UserDirectoryProfile]:
     experts = (
         db.query(User)
         .outerjoin(ExpertProfile)
@@ -88,25 +88,28 @@ def list_experts(db: Session = Depends(get_db)) -> List[UserPublic]:
         .all()
     )
     return [
-        UserPublic.model_validate(expert, from_attributes=True) for expert in experts
+        UserDirectoryProfile.model_validate(expert, from_attributes=True)
+        for expert in experts
     ]
 
 
-@router.get("/profile/{user_id}", response_model=UserPublic)
-def get_user_public_profile(user_id: str, db: Session = Depends(get_db)) -> UserPublic:
+@router.get("/profile/{user_id}", response_model=UserDirectoryProfile)
+def get_user_public_profile(
+    user_id: str, db: Session = Depends(get_db)
+) -> UserDirectoryProfile:
     user = _get_user_or_404(db, user_id)
-    return UserPublic.model_validate(user, from_attributes=True)
+    return UserDirectoryProfile.model_validate(user, from_attributes=True)
 
 
-@router.get("/{user_id}", response_model=UserPublic)
+@router.get("/{user_id}", response_model=UserDirectoryProfile)
 def get_user_public_profile_alias(
     user_id: str, db: Session = Depends(get_db)
-) -> UserPublic:
+) -> UserDirectoryProfile:
     reserved_prefixes = {"me", "experts", "profile"}
     if user_id in reserved_prefixes:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
     user = _get_user_or_404(db, user_id)
-    return UserPublic.model_validate(user, from_attributes=True)
+    return UserDirectoryProfile.model_validate(user, from_attributes=True)
 
 
 @router.get("/me/questions", response_model=List[QuestionOut])

@@ -98,9 +98,10 @@ const handleCategoryChange = () => {
   }
   router.push({
     path: '/questions',
-    query: selectedCategory.value
-      ? { category: selectedCategory.value }
-      : {}
+    query: {
+      ...route.query,
+      category: selectedCategory.value || undefined
+    }
   })
 }
 

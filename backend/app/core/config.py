@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import List, Union
 
-from pydantic import Field
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -37,6 +37,18 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=False,
     )
+
+    @model_validator(mode="after")
+    def validate_production_secrets(self):
+        if self.environment.lower() == "production":
+            if len(self.secret_key) < 32 or self.secret_key in {
+                "change-me-super-secret-key",
+                "super-secret-change-me",
+            }:
+                raise ValueError(
+                    "APP_SECRET_KEY must be a unique value of at least 32 characters in production"
+                )
+        return self
 
     @property
     def cors_origin_list(self) -> List[str]:

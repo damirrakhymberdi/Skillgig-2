@@ -35,6 +35,11 @@ class Question(Base):
         cascade="all, delete-orphan",
         foreign_keys="Answer.question_id",
     )
+    chat_messages = relationship(
+        "ChatMessage",
+        back_populates="question",
+        cascade="all, delete-orphan",
+    )
 
 
 class Answer(Base):

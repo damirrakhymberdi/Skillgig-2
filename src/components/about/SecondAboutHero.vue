@@ -20,7 +20,7 @@
           </div>
           
           <p class="story-text">
-            SkillGig IT was born from a simple observation: developers help each other every day on platforms like Stack Overflow, GitHub, and Reddit, but these platforms weren't designed specifically for real-time collaboration and mentorship.
+            SkillGig IT was born from a simple observation: developers help each other every day on platforms like Stack Overflow, GitHub, and Reddit. SkillGig focuses that help around specific IT project questions and follow-up conversations.
           </p>
           
           <p class="story-text">
@@ -28,7 +28,7 @@
           </p>
           
           <p class="story-text story-text-highlight">
-            What started as a simple idea has grown into a thriving community of developers who believe in the power of knowledge sharing.
+            SkillGig brings question authors and IT specialists together to share practical knowledge and support one another.
           </p>
         </div>
       </div>

@@ -13,12 +13,12 @@
             class="faq-item"
           >
             <h2 class="faq-question">{{ item.question }}</h2>
-            <div class="faq-answer" v-html="item.answer"></div>
+            <div class="faq-answer">{{ item.answer }}</div>
           </section>
 
           <!-- FAQ Footer -->
           <div class="faq-footer">
-            <p class="faq-footer-copyright">© 2025 Skillgig. All rights reserved.</p>
+            <p class="faq-footer-copyright">© {{ currentYear }} SkillGig. All rights reserved.</p>
             <div class="faq-footer-contacts">
               <p class="faq-footer-contact-item">
                 <span class="faq-footer-label">Phone:</span>
@@ -58,93 +58,94 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
 
+const currentYear = new Date().getFullYear()
 const activeId = ref('')
 
 const faqItems = ref([
   {
     id: 'what-is-skillgig-it',
     question: 'What is SkillGig IT?',
-    answer: 'SkillGig IT is a comprehensive platform designed to connect people facing IT challenges with experienced professionals who can help solve them. Whether you\'re struggling with a bug in your web application, need design advice for your mobile app, or require assistance with backend optimization, our community of developers is here to assist you completely free of charge.<br><br>We support all major IT categories including Web Development, Mobile Development, UI/UX Design, Backend/Database, AI/ML, DevOps/Infrastructure, Game Development, and Security/Blockchain. The platform operates on a simple principle: knowledge sharing and mutual support within the IT community.'
+    answer: 'SkillGig IT is a comprehensive platform designed to connect people facing IT challenges with experienced professionals who can help solve them. Whether you\'re struggling with a bug in your web application, need design advice for your mobile app, or require assistance with backend optimization, our community of developers is here to assist you completely free of charge.\n\nWe support all major IT categories including Web Development, Mobile Development, UI/UX Design, Backend/Database, AI/ML, DevOps/Infrastructure, Game Development, and Security/Blockchain. The platform operates on a simple principle: knowledge sharing and mutual support within the IT community.'
   },
   {
     id: 'how-does-platform-work',
     question: 'How does the platform work?',
-    answer: 'The platform works through a straightforward four-step process. First, you post your question by describing your IT problem in detail, including relevant code snippets, error messages, screenshots, and what you\'ve already tried. Second, multiple experts from our community review your question and submit their proposed solutions, often within hours. Third, you review all the answers, check the experts\' profiles and ratings, and choose the solution that seems most appropriate for your problem.<br><br>Once you select an answer, a private chat automatically opens between you and the chosen expert. You work together with the expert through the chat to implement the solution, and once your problem is solved, you mark the question as resolved and rate the expert\'s help. This creates a transparent and quality-driven ecosystem where good helpers get recognized.'
+    answer: 'Create an account, post a question with enough detail to explain the problem, and wait for community members with expert profiles to answer. You can review the answers on the question page. If you need to discuss a solution privately, use the message button on the question or answer to open a chat. The question author can mark the question as resolved.'
   },
   {
     id: 'is-skillgig-really-free',
     question: 'Is SkillGig really free?',
-    answer: 'Yes, SkillGig IT is currently 100% free to use for both clients asking questions and experts providing answers. We believe that knowledge should be accessible to everyone, especially in the rapidly evolving IT field. Our primary goal at this stage is to build a strong, helpful community of developers who support each other.<br><br>There are no hidden fees, subscription costs, or charges for posting questions or receiving answers. In the future, we may introduce optional premium features or paid consultations for extremely complex problems, but the core platform will always remain free. We\'re committed to keeping the barrier to entry low so that students, freelancers, and developers at any stage of their career can benefit.'
+    answer: 'Yes. Asking questions and sharing answers are currently free. The project does not currently offer paid consultations or subscriptions.'
   },
   {
     id: 'who-can-use-skillgig',
     question: 'Who can use SkillGig IT?',
-    answer: 'SkillGig IT is designed for two main groups of users. First, clients or problem-solvers: this includes anyone facing challenges in their IT projects, whether you\'re a student working on a personal project, a freelance developer stuck on a bug, a startup founder needing technical advice, or an individual developer exploring new technologies. You don\'t need to be an expert to ask questions.<br><br>Second, experts or helpers: these are experienced developers who want to give back to the community. If you have knowledge in web development, mobile app creation, UI/UX design, backend systems, or DevOps, you can register as an expert and start answering questions. Even if you have just one or two years of experience, you likely have valuable insights that could help someone else.'
+    answer: 'Anyone can create an account and ask about an IT problem. Accounts with an expert profile can also answer questions. Keep questions and answers focused on projects where you can share context and useful details.'
   },
   {
     id: 'what-questions-can-i-ask',
     question: 'What kind of questions can I ask?',
-    answer: 'You can ask questions about virtually any IT-related problem you\'re facing in your own projects. This includes website bugs like broken layouts or JavaScript errors, mobile application problems such as performance issues or navigation bugs, design questions seeking feedback on UI/UX or color schemes, backend challenges like API design or database optimization, and DevOps issues including Docker setup or CI/CD pipelines.<br><br>The key requirement is that your question should be about a real problem in a project you\'re actually working on. You should provide context, show what you\'ve tried, and be specific about where you\'re stuck. Questions about game development, AI/ML integration, and security concerns are also welcome.'
+    answer: 'You can ask questions about virtually any IT-related problem you\'re facing in your own projects. This includes website bugs like broken layouts or JavaScript errors, mobile application problems such as performance issues or navigation bugs, design questions seeking feedback on UI/UX or color schemes, backend challenges like API design or database optimization, and DevOps issues including Docker setup or CI/CD pipelines.\n\nThe key requirement is that your question should be about a real problem in a project you\'re actually working on. You should provide context, show what you\'ve tried, and be specific about where you\'re stuck. Questions about game development, AI/ML integration, and security concerns are also welcome.'
   },
   {
     id: 'what-questions-not-allowed',
     question: 'What questions are NOT allowed?',
-    answer: 'We strictly prohibit questions that violate academic integrity. This means you cannot ask for help with homework assignments, laboratory work, course projects that are meant to be completed individually, exam questions, or any academic work where you\'re expected to demonstrate your own learning.<br><br>For example, asking "Please create a complete to-do app for me because it\'s my lab assignment" is not allowed. Similarly, "Write my Python exam code" or "Build my entire course project" are prohibited. The reason is simple: academic work is designed to help you learn. However, if you\'re working on your own personal project outside of academic requirements, that\'s perfectly acceptable.'
+    answer: 'We strictly prohibit questions that violate academic integrity. This means you cannot ask for help with homework assignments, laboratory work, course projects that are meant to be completed individually, exam questions, or any academic work where you\'re expected to demonstrate your own learning.\n\nFor example, asking "Please create a complete to-do app for me because it\'s my lab assignment" is not allowed. Similarly, "Write my Python exam code" or "Build my entire course project" are prohibited. The reason is simple: academic work is designed to help you learn. However, if you\'re working on your own personal project outside of academic requirements, that\'s perfectly acceptable.'
   },
   {
     id: 'how-write-good-question',
     question: 'How do I write a good question?',
-    answer: 'Writing a good question significantly increases your chances of getting helpful answers quickly. Start with a specific, descriptive title that summarizes the problem, like "React mobile menu doesn\'t open in Chrome but works in Safari" rather than just "Menu broken". In the description, explain what you\'re trying to achieve, what\'s currently happening instead, and what you\'ve already tried to fix it.<br><br>Include relevant code snippets, but don\'t paste your entire codebase. Show the specific function or component where the issue occurs. If possible, provide a GitHub repository link or CodePen demo. Add screenshots or screen recordings of the error. Select the correct category and add relevant technology tags. Finally, indicate the difficulty level honestly.'
+    answer: 'Writing a good question significantly increases your chances of getting helpful answers quickly. Start with a specific, descriptive title that summarizes the problem, like "React mobile menu doesn\'t open in Chrome but works in Safari" rather than just "Menu broken". In the description, explain what you\'re trying to achieve, what\'s currently happening instead, and what you\'ve already tried to fix it.\n\nInclude relevant code snippets, but don\'t paste your entire codebase. Show the specific function or component where the issue occurs. If possible, provide a GitHub repository link or CodePen demo. Add screenshots or screen recordings of the error. Select the correct category and add relevant technology tags. Finally, indicate the difficulty level honestly.'
   },
   {
     id: 'how-long-answers',
     question: 'How long does it take to get answers?',
-    answer: 'Response time varies based on several factors including question complexity, time of day, and popularity of the technology. For simple, clearly explained questions about popular technologies like React, Vue, or Flutter, you can often receive initial answers within 30 minutes to 2 hours. Medium complexity questions typically get responses within 2 to 12 hours.<br><br>Complex architectural questions or problems involving less common technologies might take 12 to 24 hours. Keep in mind that our community of experts is spread across different time zones. If your question hasn\'t received answers within 24 hours, consider editing it to add more details, as sometimes questions don\'t get answered because they\'re unclear.'
+    answer: 'There is no guaranteed response time. It depends on whether community members with relevant experience are available. A clear title, useful context, and the steps you have already tried can make your question easier to answer.'
   },
   {
     id: 'what-if-multiple-answers',
     question: 'What if I get multiple answers?',
-    answer: 'Receiving multiple answers is actually a good sign. Take your time to review each answer carefully. First, read through each solution to understand the approach being suggested. Second, check each expert\'s profile to see their rating and experience level. Third, consider the quality of the answer itself: Is it detailed? Does it include code examples? Does it address the root cause?<br><br>You\'re not obligated to choose the first answer or the one from the highest-rated expert. Choose the answer that makes the most sense for your specific situation. Once you select an answer, a private chat opens with that expert, but if their solution doesn\'t work out, you can go back and try another expert\'s approach.'
+    answer: 'Review each answer and compare how clearly it explains a solution to your specific problem. You can message an answer author privately from the question page if you want to discuss their suggestion. The project does not currently provide expert ratings.'
   },
   {
     id: 'can-edit-delete-question',
     question: 'Can I edit or delete my question?',
-    answer: 'Yes, you have control over your questions with some reasonable limitations. To edit a question, simply go to the question page and click the "Edit" button, which is only visible to you as the question author. You can modify the title, description, add more code or screenshots, update tags, or clarify any confusion.<br><br>Regarding deletion, you can delete your own questions using the "Delete" button on the question page. However, once experts have submitted answers and invested their time, deletion may be restricted to preserve that community effort. If you really need to delete a question with answers, contact our support team with a valid reason.'
+    answer: 'The question author can edit or delete their own question from its page. Deleting a question also removes its answers and chat messages. Make sure you want to remove that discussion before confirming deletion.'
   },
   {
     id: 'how-register-as-expert',
     question: 'How do I register as an expert?',
-    answer: 'Registering as an expert is quick and straightforward. Start by clicking the "Register" button on the homepage. When prompted, select "I want to help others" to indicate you\'re registering as an expert. You\'ll need to fill out your basic profile information including your full name and email.<br><br>Then select your primary specialty from options like Frontend Developer, Backend Developer, Mobile Developer, UI/UX Designer, or DevOps Engineer. Indicate your years of experience and add your skills using hashtags like #React #Vue #JavaScript. Write a brief bio explaining your background. Finally, add links to your GitHub, LinkedIn, or Behance profiles. Once submitted, you can immediately start answering questions.'
+    answer: 'Choose the IT specialist account type when registering to create an expert profile and answer questions. You can add or update your skills, experience, and other profile details from your profile settings. Existing accounts can create an expert profile there as well.'
   },
   {
     id: 'requirements-to-become-expert',
     question: 'What are the requirements to become an expert?',
-    answer: 'We intentionally keep the requirements minimal because we believe that even developers with limited experience have valuable knowledge to share. There\'s no certification exam, no minimum years of experience required, and no approval process. The main requirements are: you should have genuine knowledge in at least one area of IT, be willing to explain concepts clearly and patiently, and commit to being respectful in all interactions.<br><br>While not required, having a portfolio like GitHub repositories or previous projects greatly helps establish your credibility. Your reputation on SkillGig IT will ultimately be determined by the quality of answers you provide and the ratings you receive from clients. Start with easier questions if you\'re newer to being an expert, and gradually take on more complex problems.'
+    answer: 'An expert profile is required to answer questions. Choose the IT specialist account type during signup, or create an expert profile later from profile settings. There is no rating or certification system in the current version, so describe your experience honestly.'
   },
   {
     id: 'do-i-get-paid',
     question: 'Do I get paid for answering questions?',
-    answer: 'Currently, SkillGig IT operates on a free, volunteer basis, meaning experts do not receive direct monetary payment for answering questions. However, there are significant non-monetary benefits. First, you build a strong public reputation through ratings and reviews. Second, you develop your own knowledge, as teaching is one of the best ways to deepen understanding. Third, you build a portfolio of solved problems.<br><br>Fourth, you make valuable connections within the developer community. Fifth, there\'s intrinsic satisfaction in helping others succeed. In the future, we may introduce optional paid consultations for highly complex problems, but for now, think of SkillGig IT as community service that pays dividends in reputation and learning.'
+    answer: 'No. Answering questions is currently voluntary, and the platform does not process payments or offer paid consultations.'
   },
   {
     id: 'how-many-questions-can-answer',
     question: 'How many questions can I answer?',
-    answer: 'You can answer as many questions as you want with no limits. The more you help, the higher your reputation grows on the platform. However, we encourage quality over quantity. It\'s better to provide fewer excellent, detailed answers than many rushed, incomplete ones.<br><br>Focus on questions where you have genuine expertise and can provide real value. Don\'t feel pressured to answer questions outside your comfort zone. As you build confidence and see the positive impact of your help, you\'ll naturally want to contribute more to the community.'
+    answer: 'There is no fixed answer limit in the current version. Focus on questions where you can give a clear, useful response.'
   },
   {
     id: 'how-rating-calculated',
     question: 'How is my rating calculated?',
-    answer: 'Your rating is calculated using a straightforward average system. After you help solve a problem, the client rates their experience with you on a scale of 1 to 5 stars. Your overall rating is the sum of all star ratings divided by the total number of ratings. For example, if you\'ve received 5, 4, 5, 5, and 3 stars from five clients, your rating would be 4.4 stars.<br><br>Your profile also displays the total number of problems you\'ve solved, your success rate percentage, and a breakdown by category showing expertise areas. Clients often look at these metrics when choosing which expert\'s answer to select, so maintaining high quality is important. A few lower ratings won\'t ruin your reputation if you have many high ratings overall.'
+    answer: 'The current version does not have expert ratings or reviews. You can describe your experience in your profile, and question pages show whether a question has been resolved.'
   },
   {
     id: 'how-chat-works',
     question: 'How does the chat work?',
-    answer: 'The chat feature is the heart of collaboration on SkillGig IT. After you submit an answer, if the client chooses your solution, a private chat channel automatically opens between you two. You\'ll receive a notification letting you know. The chat operates in real-time, meaning messages appear instantly without refreshing.<br><br>You can send text messages, upload files up to 10MB, share code snippets with syntax highlighting, and see read receipts. One important rule: all communication must stay within the chat. Sharing external contact information like phone numbers or social media is prohibited for safety. The chat remains accessible even after the problem is solved, allowing for follow-up questions.'
+    answer: 'The question author and answer authors can open a private conversation using the message button on the question page. Chat supports text messages. New messages refresh automatically about every five seconds while the chat is open. File uploads, read receipts, and instant push notifications are not currently available.'
   },
   {
     id: 'is-my-data-safe',
     question: 'Is my data safe?',
-    answer: 'Yes, we take data security very seriously and implement multiple layers of protection. All passwords are hashed using bcrypt, meaning we never store your actual password. All communication uses HTTPS encryption. We use JWT tokens for secure authentication. We regularly update our dependencies and conduct security audits.<br><br>We follow GDPR principles regarding data collection. We only collect data necessary for the platform to function, we never sell your personal information to third parties, and we don\'t share your email address publicly. User-generated content is sanitized to prevent malicious code injection. We encourage users to use strong, unique passwords and be cautious about what personal information they include in questions or answers.'
+    answer: 'Passwords are stored as bcrypt hashes, and public user profiles do not expose email addresses. The app validates external link schemes and displays question and answer text without interpreting it as HTML. HTTPS depends on the site deployment; do not share passwords or sensitive personal information in public questions.'
   }
 ])
 
@@ -267,17 +268,7 @@ const scrollToQuestion = (id) => {
   font-size: 1.125rem;
   line-height: 1.3;
   color: #4D4D4D;
-}
-
-.faq-answer :deep(.faq-link) {
-  color: #42b883;
-  text-decoration: none;
-  transition: color 0.3s ease;
-}
-
-.faq-answer :deep(.faq-link:hover) {
-  color: #35a372;
-  text-decoration: underline;
+  white-space: pre-line;
 }
 
 /* FAQ Footer */

@@ -93,7 +93,6 @@ const handleAuthorClick = (event) => {
   }
   const query = buildProfileQuery({
     name: props.question?.clientName,
-    email: props.question?.clientEmail,
     userRole: props.question?.clientRole,
     primaryRole: props.question?.clientProfile?.primaryRole,
     profile: props.question?.clientProfile
@@ -130,27 +129,27 @@ const timeAgo = (dateString) => {
   position: relative;
   background-color: white;
   border: 1px solid #e5e7eb;
-  border-right: none;
-  border-radius: 0;
-  padding: 1rem 2rem;
+  border-radius: 14px;
+  padding: 1.15rem 1.35rem;
   cursor: pointer;
-  transition: all 0.2s;
-  
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
 }
 
 /* Жауаптары бар сұрақтар үшін border */
 .question-card.has-answers {
-  border: 2px solid #e5e7eb;
+  border-color: #dce5de;
 }
 
 /* Шешілген сұрақтар үшін жасыл border */
 .question-card.has-answers.is-solved {
-  border: 2px solid #4CAF4F;
+  border-color: #b7dfc5;
+  border-left: 3px solid #16834b;
 }
 
 .question-card:hover {
-  border-color: #d1d5db;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-color: #bdcfc1;
+  box-shadow: 0 10px 24px rgba(26, 42, 31, 0.08);
+  transform: translateY(-1px);
 }
 
 .question-card.has-answers:hover {
@@ -158,8 +157,8 @@ const timeAgo = (dateString) => {
 }
 
 .question-card.has-answers.is-solved:hover {
-  border-color: #45a049;
-  box-shadow: 0 2px 12px rgba(76, 175, 79, 0.2);
+  border-color: #8fc5a3;
+  box-shadow: 0 10px 24px rgba(22, 131, 75, 0.12);
 }
 
 .question-card.is-highlighted {
@@ -194,10 +193,10 @@ const timeAgo = (dateString) => {
 .tag {
   display: inline-block;
   padding: 0.25rem 0.625rem;
-  background-color: #f3f4f6;
-  color: #6b7280;
+  background-color: #eef5f0;
+  color: #42634d;
   font-size: 0.8125rem;
-  border-radius: 4px;
+  border-radius: 999px;
   font-weight: 500;
 }
 
@@ -231,7 +230,7 @@ const timeAgo = (dateString) => {
   padding: 0;
   margin: 0;
   font: inherit;
-  color: #2563eb;
+  color: #16834b;
   cursor: pointer;
 }
 
@@ -246,6 +245,21 @@ const timeAgo = (dateString) => {
 
 .separator {
   color: #d1d5db;
+}
+
+@media (max-width: 600px) {
+  .question-card {
+    padding: 1rem;
+  }
+
+  .question-meta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .meta-left {
+    flex-wrap: wrap;
+  }
 }
 </style>
 

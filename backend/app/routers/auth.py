@@ -40,14 +40,12 @@ def _get_user_by_identifier(db: Session, identifier: str) -> User | None:
     status_code=status.HTTP_201_CREATED,
 )
 def register_user(payload: UserCreate, db: Session = Depends(get_db)) -> RegisterResponse:
+    duplicate_conditions = [User.email == payload.email.lower()]
+    if payload.username is not None:
+        duplicate_conditions.append(User.username == payload.username)
     existing_user = (
         db.query(User)
-        .filter(
-            or_(
-                User.email == payload.email.lower(),
-                User.username == payload.username,
-            )
-        )
+        .filter(or_(*duplicate_conditions))
         .first()
     )
     if existing_user:

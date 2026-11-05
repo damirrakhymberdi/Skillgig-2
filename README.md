@@ -49,7 +49,7 @@ Copy `backend/env.example` to `backend/.env` (not committed) and adjust:
 
 Workflow: `.github/workflows/ci.yml`
 - Builds frontend
-- Installs backend deps + runs import/compile checks
+- Installs backend development deps, runs import/compile checks, and executes API/migration tests
 
 ## Deploy (recommended)
 

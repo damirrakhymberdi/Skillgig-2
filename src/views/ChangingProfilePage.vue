@@ -22,7 +22,7 @@
                 {{ form.nickname || fallbackNickname }}
               </h2>
             </div>
-            <span class="level-pill">{{ levelTitle }}</span>
+            <span class="accepted-pill">{{ acceptedAnswers }} accepted</span>
           </div>
 
           <label class="input-label" for="nickname">Nickname</label>
@@ -47,12 +47,12 @@
         </section>
 
         <section class="card stats-card">
-          <h3 class="section-title">Level & Progress</h3>
+          <h3 class="section-title">Answer activity</h3>
           <div class="stats-grid">
             <div class="stat-card">
-              <span class="stat-label">Level</span>
-              <span class="stat-value">{{ levelTitle }}</span>
-              <span class="stat-hint">{{ successRate }}% answers accepted</span>
+              <span class="stat-label">Accepted rate</span>
+              <span class="stat-value">{{ successRate }}%</span>
+              <span class="stat-hint">Accepted answers / all answers</span>
             </div>
             <div class="stat-card">
               <span class="stat-label">Answered</span>
@@ -210,15 +210,6 @@ const successRate = computed(() => {
     return 0
   }
   return Math.round((acceptedAnswers.value / answeredQuestions.value) * 100)
-})
-
-const levelTitle = computed(() => {
-  const accepted = acceptedAnswers.value
-
-  if (accepted >= 50) return 'Expert'
-  if (accepted >= 20) return 'Pro'
-  if (accepted >= 5) return 'Rising'
-  return 'Newcomer'
 })
 
 const hydrateProfile = async () => {
@@ -447,7 +438,7 @@ onMounted(async () => {
   color: #6b7280;
 }
 
-.level-pill {
+.accepted-pill {
   padding: 0.35rem 0.9rem;
   border-radius: 999px;
   background: #ecfdf5;
