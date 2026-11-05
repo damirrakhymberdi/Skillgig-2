@@ -30,8 +30,16 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 Base = declarative_base()
 
+# Import models after Base exists so every mapped table is registered before
+# schema bootstrap runs in a serverless instance.
+from . import models as _models  # noqa: E402,F401
+
+def ensure_schema() -> None:
+    """Create any missing tables without changing existing data."""
+    Base.metadata.create_all(bind=engine)
 
 def get_db() -> Generator:
+    ensure_schema()
     db = SessionLocal()
     try:
         yield db
