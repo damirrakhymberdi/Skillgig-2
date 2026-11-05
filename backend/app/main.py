@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from .core.config import get_settings
 from .database import Base, engine
@@ -58,9 +60,18 @@ def read_root():
     return {"status": "ok"}
 
 
-@app.get("/health")
+@app.get(f"{settings.api_prefix}/health")
 def health_check():
-    return {"status": "ok"}
+    try:
+        with engine.connect() as connection:
+            connection.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "ok"}
+    except Exception as exc:  # pragma: no cover - depends on external database
+        print(f"Health database check failed: {exc}")
+        return JSONResponse(
+            status_code=503,
+            content={"status": "degraded", "database": "unavailable", "error": type(exc).__name__},
+        )
 
 
 def create_app():
