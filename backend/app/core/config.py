@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from typing import List, Union
 
@@ -12,7 +13,11 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
     refresh_token_expire_minutes: int = 60 * 24 * 7  # 7 days
-    database_url: str = Field(default="sqlite:///./data/app.db")
+    database_url: str = Field(
+        default_factory=lambda: os.getenv("DATABASE_URL")
+        or os.getenv("POSTGRES_URL")
+        or "sqlite:///./data/app.db"
+    )
     
     # CORS origins - ЖАҢАРТЫЛДЫ! 🔥
     cors_origins: Union[List[str], str] = Field(

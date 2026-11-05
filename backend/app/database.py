@@ -12,6 +12,11 @@ settings = get_settings()
 connect_args = {}
 database_url = settings.database_url
 
+if database_url.startswith("postgres://"):
+    database_url = "postgresql+psycopg://" + database_url[len("postgres://") :]
+elif database_url.startswith("postgresql://"):
+    database_url = "postgresql+psycopg://" + database_url[len("postgresql://") :]
+
 if database_url.startswith("sqlite"):
     db_path = database_url.replace("sqlite:///", "", 1)
     db_dir = Path(db_path).parent
