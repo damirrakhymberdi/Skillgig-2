@@ -65,12 +65,22 @@ def health_check():
     try:
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-        return {"status": "ok", "database": "ok"}
+            tables = {}
+            for table_name in ("users", "questions", "expert_profiles", "answers"):
+                tables[table_name] = connection.execute(
+                    text(f"SELECT COUNT(*) FROM {table_name}")
+                ).scalar_one()
+        return {"status": "ok", "database": "ok", "tables": tables}
     except Exception as exc:  # pragma: no cover - depends on external database
         print(f"Health database check failed: {exc}")
         return JSONResponse(
             status_code=503,
-            content={"status": "degraded", "database": "unavailable", "error": type(exc).__name__},
+            content={
+                "status": "degraded",
+                "database": "unavailable",
+                "error": type(exc).__name__,
+                "detail": str(exc)[:500],
+            },
         )
 
 
